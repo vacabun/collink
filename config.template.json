@@ -1,0 +1,7 @@
+{
+  "authorization": "<JWT アクセストークン（Bearer 以降の文字列）>",
+  "refresh_token": "<リフレッシュトークン（ログイン時に取得）>",
+  "x_request_verification_key": "<rvk_XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX>",
+  "x_artist_group_uuid": "<XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX>",
+  "x_device_uuid": "<ios_XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX>"
+}

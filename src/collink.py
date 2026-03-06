@@ -107,10 +107,9 @@ def download_and_save(
                         url = media.get("url", "")
                         if url and _download_media(url, dest):
                             media["localPath"] = os.path.join("media", filename)
-                            media_total += 1
                     else:
                         media["localPath"] = os.path.join("media", filename)
-
+                    media_total += 1
                 # Append to JSON array
                 if not first_msg:
                     f.write(",\n")

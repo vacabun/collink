@@ -1,7 +1,7 @@
 {
-  "authorization": "<JWT アクセストークン（Bearer 以降の文字列）>",
-  "refresh_token": "<リフレッシュトークン（ログイン時に取得）>",
-  "x_request_verification_key": "<rvk_XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX>",
-  "x_artist_group_uuid": "<XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX>",
-  "x_device_uuid": "<ios_XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX>"
+  "username": "<login username or email (used to re-login if refresh fails)>",
+  "password": "<login password (used to re-login if refresh fails)>",
+  "x_request_verification_key": "<required request verification key, e.g. rvk_XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX>",
+  "x_artist_group_uuid": "<required artist group UUID>",
+  "x_device_uuid": "<required device UUID, e.g. ios_XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX>"
 }

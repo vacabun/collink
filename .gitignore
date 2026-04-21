@@ -3,3 +3,5 @@
 messages/
 *.DS_Store
 config.json
+auth_cache.json
+captures/

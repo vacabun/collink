@@ -87,8 +87,8 @@ pip install requests
 Open the equal-love.link app on your phone while running a packet capture (e.g. [Proxyman](https://proxyman.io) or [mitmproxy](https://mitmproxy.org)). Look for the login request:
 
 - From `POST /login`, extract `username` and `password`
-- From authenticated requests, extract `x_request_verification_key`, `x_artist_group_uuid`, and `x_device_uuid`
-- These three fields must be filled in explicitly in `config.json`
+- From authenticated requests, extract `x_request_verification_key` and `x_artist_group_uuid`
+- `x_device_uuid` is generated automatically at runtime; you do not need to capture or store it
 
 ### 3. Create `config.json`
 
@@ -103,12 +103,13 @@ cp config.template.json config.json
   "username": "<login username or email>",
   "password": "<login password>",
   "x_request_verification_key": "<required request verification key>",
-  "x_artist_group_uuid": "<required artist group UUID>",
-  "x_device_uuid": "<required device UUID>"
+  "x_artist_group_uuid": "<required artist group UUID>"
 }
 ```
 
 `config.json` is listed in `.gitignore` and will never be committed.
+
+`x_device_uuid` is generated in memory for the current run. A fresh value is created when password login happens, and the same value is reused for the rest of that run.
 
 `authorization` and `refresh_token` no longer need to be stored in `config.json`. After the first successful login, they are written to `auth_cache.json`.
 

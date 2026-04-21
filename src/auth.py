@@ -6,12 +6,14 @@ Uses username/password login and refreshToken to renew the accessToken.
 """
 import json
 import re
+import uuid
 from typing import Optional
 
 import requests
 
 AUTH_BASE_URL = "https://api.entertainment-platform-auth.cosm.jp"
 AUTH_CACHE_PATH = "auth_cache.json"
+_RUNTIME_DEVICE_UUID: Optional[str] = None
 
 _DEFAULT_HEADERS = {
     "user-agent": "io.cosm.fc.user.equal.love/1.3.0/iOS/26.4.1/iPhone",
@@ -57,11 +59,21 @@ def _has_value(config: dict, key: str) -> bool:
     return bool(value) and not _is_placeholder(value)
 
 
+def _generate_device_uuid() -> str:
+    return f"ios_{uuid.uuid4()}"
+
+
+def get_runtime_device_uuid(regenerate: bool = False) -> str:
+    global _RUNTIME_DEVICE_UUID
+    if regenerate or not _RUNTIME_DEVICE_UUID:
+        _RUNTIME_DEVICE_UUID = _generate_device_uuid()
+    return _RUNTIME_DEVICE_UUID
+
+
 def validate_auth_config(config: dict) -> None:
     required_fields = [
         "x_request_verification_key",
         "x_artist_group_uuid",
-        "x_device_uuid",
     ]
     missing = [field for field in required_fields if not _has_value(config, field)]
     if missing:
@@ -98,6 +110,7 @@ def load_runtime_auth(
     if not cache:
         runtime_auth.update(_extract_legacy_cache(config))
 
+    runtime_auth["x_device_uuid"] = get_runtime_device_uuid()
     return runtime_auth
 
 
@@ -229,11 +242,12 @@ def login_and_save(
         raise ValueError("config.json must contain username and password for password login")
 
     validate_auth_config(config)
+    device_uuid = get_runtime_device_uuid(regenerate=True)
 
     result = login_with_password(
         username=username,
         password=password,
-        device_uuid=config["x_device_uuid"],
+        device_uuid=device_uuid,
         x_request_verification_key=config["x_request_verification_key"],
         x_artist_group_uuid=config["x_artist_group_uuid"],
         authorization=cache.get("authorization") or config.get("authorization"),
@@ -261,10 +275,11 @@ def refresh_and_save(
     refresh_token = cache.get("refresh_token") or config.get("refresh_token")
     if not refresh_token:
         raise ValueError(f"{cache_path} is missing refresh_token")
+    device_uuid = get_runtime_device_uuid()
 
     result = refresh_access_token(
         refresh_token=refresh_token,
-        device_uuid=config["x_device_uuid"],
+        device_uuid=device_uuid,
         x_request_verification_key=config["x_request_verification_key"],
         x_artist_group_uuid=config["x_artist_group_uuid"],
         authorization=cache.get("authorization") or config.get("authorization"),

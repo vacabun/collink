@@ -5,6 +5,7 @@ collink.py — equal-love.link full message & media downloader
 import json
 import os
 import time
+import zipfile
 from datetime import datetime, timezone, timedelta
 
 import requests as _requests
@@ -17,6 +18,7 @@ from src.equal_love_client import EqualLoveClient
 
 # Output directory
 OUTPUT_DIR = "messages"
+ALARM_MEDIA_DIR = os.path.join(OUTPUT_DIR, "alarm_media")
 # Delay between requests (seconds) to avoid hammering the server
 REQUEST_INTERVAL = 0.5
 PROGRESS_BAR_WIDTH = 24
@@ -31,6 +33,10 @@ def load_config(path: str = "config.json") -> dict:
 def _room_dir(talk_room_id: int, room_name: str) -> str:
     safe_name = room_name.replace(" ", "_").replace("/", "-")
     return os.path.join(OUTPUT_DIR, f"{talk_room_id:02d}_{safe_name}")
+
+
+def _safe_name(name: str) -> str:
+    return name.replace(" ", "_").replace("/", "-")
 
 
 def _progress_bar(current: int, total: int, width: int = PROGRESS_BAR_WIDTH) -> str:
@@ -96,6 +102,87 @@ def _download_media(url: str, dest_path: str) -> bool:
     except Exception as e:
         print(f"    [media download failed] {os.path.basename(dest_path)}: {e}")
         return False
+
+
+def _extract_zip(zip_path: str, dest_dir: str) -> bool:
+    """Extract a ZIP while preventing paths from escaping the destination."""
+    try:
+        dest_abs = os.path.abspath(dest_dir)
+        with zipfile.ZipFile(zip_path) as archive:
+            for member in archive.infolist():
+                target_path = os.path.abspath(os.path.join(dest_dir, member.filename))
+                if target_path != dest_abs and not target_path.startswith(dest_abs + os.sep):
+                    raise ValueError(f"unsafe ZIP member path: {member.filename}")
+            archive.extractall(dest_dir)
+        return True
+    except Exception as e:
+        print(f"    [alarm media extract failed] {os.path.basename(zip_path)}: {e}")
+        return False
+
+
+def download_alarm_media_zips(client: EqualLoveClient, rooms: list[dict]) -> tuple[str, int]:
+    """Download and extract alarm voice/media ZIPs for all talk rooms."""
+    room_names = {room["id"]: room.get("name", f"talk_room_{room['id']}") for room in rooms}
+    os.makedirs(ALARM_MEDIA_DIR, exist_ok=True)
+
+    resp = client.get_all_artist_media_zips()
+    entries = resp.get("data", [])
+    downloaded = 0
+
+    if not entries:
+        print("[alarm media] no alarm media ZIPs found")
+        return ALARM_MEDIA_DIR, 0
+
+    print(f"[alarm media] downloading {len(entries)} ZIPs...")
+    for entry in entries:
+        talk_room_id = entry.get("talkRoomId")
+        media_zip_url = entry.get("mediaZipUrl", "")
+        if not talk_room_id or not media_zip_url:
+            continue
+
+        room_name = room_names.get(talk_room_id, f"talk_room_{talk_room_id}")
+        dest_dir = os.path.join(ALARM_MEDIA_DIR, f"{talk_room_id:02d}_{_safe_name(room_name)}")
+        zip_path = os.path.join(dest_dir, "alarm_media.zip")
+        metadata_path = os.path.join(dest_dir, "metadata.json")
+        os.makedirs(dest_dir, exist_ok=True)
+
+        existing_metadata = {}
+        if os.path.exists(metadata_path):
+            try:
+                with open(metadata_path, encoding="utf-8") as f:
+                    existing_metadata = json.load(f)
+            except (OSError, json.JSONDecodeError):
+                existing_metadata = {}
+
+        metadata = {
+            "talkRoomId": talk_room_id,
+            "roomName": room_name,
+            "lastUpdate": entry.get("lastUpdate"),
+            "mediaZipUrl": media_zip_url,
+        }
+
+        is_current = (
+            os.path.exists(zip_path)
+            and existing_metadata.get("lastUpdate") == metadata["lastUpdate"]
+        )
+        if is_current:
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2)
+            print(f"  [skip] {room_name} alarm_media.zip already exists")
+            _extract_zip(zip_path, dest_dir)
+            continue
+
+        if _download_media(media_zip_url, zip_path):
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2)
+            _extract_zip(zip_path, dest_dir)
+            downloaded += 1
+            print(f"  [done] {room_name} -> {zip_path}")
+
+        time.sleep(REQUEST_INTERVAL)
+
+    print(f"[alarm media] saved to {ALARM_MEDIA_DIR}/\n")
+    return ALARM_MEDIA_DIR, downloaded
 
 
 def download_and_save(
@@ -223,6 +310,8 @@ def main():
     print(f"  Found {len(rooms)} talk rooms\n")
     accessible_rooms = _print_subscription_overview(rooms)
     total_accessible = len(accessible_rooms)
+
+    download_alarm_media_zips(client, rooms)
 
     results = []
     accessible_index = 0

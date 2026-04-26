@@ -81,6 +81,18 @@ class EqualLoveClient:
         return resp.json()
 
     # ------------------------------------------------------------------
+    # GET /user/v1/alarms/all-artist-media-zips
+    # ------------------------------------------------------------------
+    def get_all_artist_media_zips(self) -> dict:
+        """Fetch alarm media ZIP URLs for all artists/talk rooms
+
+        :return: API response JSON. data contains talkRoomId, mediaZipUrl, and lastUpdate.
+        """
+        resp = self.session.get(f"{BASE_URL}/user/v1/alarms/all-artist-media-zips")
+        resp.raise_for_status()
+        return resp.json()
+
+    # ------------------------------------------------------------------
     # GET /user/v2/chat/{talk_room_id}
     # ------------------------------------------------------------------
     def get_chat(

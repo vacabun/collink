@@ -125,7 +125,8 @@ The script will:
 3. Skip rooms that require a subscription you don't have (`isAccessible: false`)
 4. Download all messages page by page for each accessible room
 5. Download all media files (images, videos) into `media/`
-6. Save everything under `messages/{id}_{room_name}/`
+6. Download alarm voice/media ZIPs into `messages/alarm_media/`
+7. Save everything under `messages/{id}_{room_name}/`
 
 Before downloading, it prints an overview like:
 
@@ -165,6 +166,17 @@ A standard JSON array of message objects as returned by the API, with two fields
 
 The talk room metadata object exactly as returned by the `/user/v2/talk-room` endpoint.
 
+### `alarm_media/`
+
+Alarm voice/media ZIPs are saved under:
+
+```
+messages/alarm_media/{id}_{room_name}/
+├── alarm_media.zip
+├── metadata.json
+└── ... extracted voice/media files
+```
+
 ---
 
 ## API endpoints used
@@ -175,6 +187,7 @@ The talk room metadata object exactly as returned by the `/user/v2/talk-room` en
 | `GET` | `/user/v2/chat/{id}` | Fetch messages for a room (paginated) |
 | `GET` | `/user/v1/campaign` | Current campaign info |
 | `GET` | `/user/v1/alarms/list/{device_uuid}` | Alarm/notification settings |
+| `GET` | `/user/v1/alarms/all-artist-media-zips` | Alarm media ZIP URLs for all talk rooms |
 | `POST` | `/login` | Login with username/password |
 | `POST` | `/token/refresh` | Refresh access token |
 
